@@ -1,0 +1,20 @@
+{
+  "name": "ledgebrook-interview-practice",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end boilerplate for Ledgebrook technical interview practice",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run typecheck --workspaces --if-present && npm run build --workspaces --if-present",
+    "dev:api": "npm run dev --workspace @ledgebrook/api",
+    "dev:web": "npm run dev --workspace @ledgebrook/web"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  }
+}
