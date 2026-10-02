@@ -104,6 +104,12 @@ npm start          # Run the compiled service
 npm run check      # Typecheck, test, and build
 ```
 
+## Test with Postman
+
+Start the backend with `npm run dev`, then import [`postman/underwriting-decision-service.postman_collection.json`](postman/underwriting-decision-service.postman_collection.json) into Postman. Run individual requests or use Postman's collection runner to exercise all decision, boundary, validation, malformed JSON, and routing cases with built-in assertions.
+
+The collection uses a `baseUrl` variable set to `http://localhost:3000`. Update that collection variable if the service is running on another host or port.
+
 ## Frontend integration
 
 A React or Angular client would collect the five numeric fields in a form and submit them as JSON when the user requests a decision. While the request is pending, it should disable duplicate submissions and show a loading state. HTTP 400 validation issues can be mapped to their matching form controls, while malformed or unexpected errors should be shown as a general message with a retry action.

@@ -1,0 +1,619 @@
+{
+  "info": {
+    "_postman_id": "cd8d6d9d-0d6c-4d1d-97e0-d01aa429852e",
+    "name": "Ledgebrook Underwriting Decision Service",
+    "description": "Import-ready test collection for the deterministic underwriting decision API. Start the service with `npm run dev`, then run individual requests or the complete collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Decision outcomes",
+      "item": [
+        {
+          "name": "Approve - ideal application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Decision is APPROVE\", function () {",
+                  "  pm.expect(response.decision).to.eql(\"APPROVE\");",
+                  "});",
+                  "pm.test(\"Approved amount and metrics are correct\", function () {",
+                  "  pm.expect(response.approvedAmount).to.eql(280000);",
+                  "  pm.expect(response.metrics).to.deep.eql({ debtToIncome: 0.25, loanToValue: 0.7 });",
+                  "  pm.expect(response.reasons).to.deep.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 2500,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 280000,\n  \"creditScore\": 720\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "An ideal application should be approved with no reasons."
+          },
+          "response": []
+        },
+        {
+          "name": "Refer - credit score requires review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Decision is REFER with the expected reason\", function () {",
+                  "  pm.expect(response.decision).to.eql(\"REFER\");",
+                  "  pm.expect(response).not.to.have.property(\"approvedAmount\");",
+                  "  pm.expect(response.reasons.map((reason) => reason.code)).to.deep.eql([\"CREDIT_SCORE_REFER\"]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 2500,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 280000,\n  \"creditScore\": 650\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "A credit score below 680 but not below 600 should be referred."
+          },
+          "response": []
+        },
+        {
+          "name": "Decline - mixed non-ideal factors",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Decision is DECLINE and all factors are explained\", function () {",
+                  "  pm.expect(response.decision).to.eql(\"DECLINE\");",
+                  "  pm.expect(response).not.to.have.property(\"approvedAmount\");",
+                  "  pm.expect(response.reasons.map((reason) => reason.code)).to.deep.eql([",
+                  "    \"CREDIT_SCORE_DECLINE\",",
+                  "    \"DEBT_TO_INCOME_REFER\",",
+                  "    \"LOAN_TO_VALUE_REFER\"",
+                  "  ]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 4500,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 340000,\n  \"creditScore\": 590\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "A decline-level credit score takes precedence while referral-level DTI and LTV reasons remain visible."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Boundary behavior",
+      "item": [
+        {
+          "name": "Approve - exact approval boundaries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Exact referral boundaries remain approved\", function () {",
+                  "  pm.expect(response.decision).to.eql(\"APPROVE\");",
+                  "  pm.expect(response.metrics).to.deep.eql({ debtToIncome: 0.4, loanToValue: 0.8 });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 4000,\n  \"propertyValue\": 100000,\n  \"requestedLoan\": 80000,\n  \"creditScore\": 680\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "The rules use strict below/above comparisons, so score 680, DTI 0.40, and LTV 0.80 are approved."
+          },
+          "response": []
+        },
+        {
+          "name": "Refer - exact decline boundaries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Exact decline boundaries are referred, not declined\", function () {",
+                  "  pm.expect(response.decision).to.eql(\"REFER\");",
+                  "  pm.expect(response.reasons.map((reason) => reason.code)).to.deep.eql([",
+                  "    \"CREDIT_SCORE_REFER\",",
+                  "    \"DEBT_TO_INCOME_REFER\",",
+                  "    \"LOAN_TO_VALUE_REFER\"",
+                  "  ]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 5000,\n  \"propertyValue\": 100000,\n  \"requestedLoan\": 90000,\n  \"creditScore\": 600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "The exact decline boundaries do not satisfy the strict decline comparisons, but do satisfy referral rules."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Validation and errors",
+      "item": [
+        {
+          "name": "Validation - missing annual income",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Annual income issue is returned\", function () {",
+                  "  pm.expect(response.error).to.eql(\"VALIDATION_ERROR\");",
+                  "  pm.expect(response.issues.some((issue) => issue.field === \"annualIncome\")).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthlyDebt\": 2500,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 280000,\n  \"creditScore\": 720\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "Required fields must produce a useful field-level validation issue when absent."
+          },
+          "response": []
+        },
+        {
+          "name": "Validation - non-numeric credit score",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Credit score issue is returned\", function () {",
+                  "  pm.expect(response.error).to.eql(\"VALIDATION_ERROR\");",
+                  "  pm.expect(response.issues.some((issue) => issue.field === \"creditScore\")).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 2500,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 280000,\n  \"creditScore\": \"excellent\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "Numeric strings and descriptive text are rejected rather than coerced."
+          },
+          "response": []
+        },
+        {
+          "name": "Validation - zero annual income",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Division by zero is prevented at validation\", function () {",
+                  "  pm.expect(response.error).to.eql(\"VALIDATION_ERROR\");",
+                  "  pm.expect(response.issues.some((issue) => issue.field === \"annualIncome\")).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 0,\n  \"monthlyDebt\": 2500,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 280000,\n  \"creditScore\": 720\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "A zero annual income is rejected before the DTI calculation."
+          },
+          "response": []
+        },
+        {
+          "name": "Validation - zero property value",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"LTV division by zero is prevented at validation\", function () {",
+                  "  pm.expect(response.error).to.eql(\"VALIDATION_ERROR\");",
+                  "  pm.expect(response.issues.some((issue) => issue.field === \"propertyValue\")).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 2500,\n  \"propertyValue\": 0,\n  \"requestedLoan\": 280000,\n  \"creditScore\": 720\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "A zero property value is rejected before the LTV calculation."
+          },
+          "response": []
+        },
+        {
+          "name": "Validation - negative monthly debt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Monthly debt issue is returned\", function () {",
+                  "  pm.expect(response.error).to.eql(\"VALIDATION_ERROR\");",
+                  "  pm.expect(response.issues.some((issue) => issue.field === \"monthlyDebt\")).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": -1,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 280000,\n  \"creditScore\": 720\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "Negative numeric inputs are rejected."
+          },
+          "response": []
+        },
+        {
+          "name": "Error - malformed JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Malformed JSON receives the safe error contract\", function () {",
+                  "  pm.expect(response).to.deep.eql({",
+                  "    error: \"INVALID_JSON\",",
+                  "    message: \"Request body must be valid JSON.\"",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"annualIncome\":",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "Intentionally malformed JSON verifies that parser failures are handled safely."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Routing",
+      "item": [
+        {
+          "name": "Unknown route - JSON 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Unknown routes use the JSON error contract\", function () {",
+                  "  pm.expect(response).to.deep.eql({",
+                  "    error: \"NOT_FOUND\",",
+                  "    message: \"Route not found.\"",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/unknown",
+              "host": ["{{baseUrl}}"],
+              "path": ["unknown"]
+            },
+            "description": "Unknown routes return a stable JSON 404 response."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
