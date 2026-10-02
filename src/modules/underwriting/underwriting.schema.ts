@@ -17,4 +17,25 @@ export const underwritingApplicationSchema: z.ZodType<UnderwritingApplication> =
     requestedLoan: positiveNumber("Requested loan"),
     creditScore: positiveNumber("Credit score"),
   })
-  .strip();
+  .strip()
+  .superRefine((application, context) => {
+    const monthlyIncome = application.annualIncome / 12;
+    const debtToIncome = application.monthlyDebt / monthlyIncome;
+    const loanToValue = application.requestedLoan / application.propertyValue;
+
+    if (monthlyIncome === 0 || !Number.isFinite(debtToIncome)) {
+      context.addIssue({
+        code: "custom",
+        path: ["annualIncome"],
+        message: "Annual income and monthly debt must produce a finite debt-to-income ratio.",
+      });
+    }
+
+    if (!Number.isFinite(loanToValue)) {
+      context.addIssue({
+        code: "custom",
+        path: ["propertyValue"],
+        message: "Property value and requested loan must produce a finite loan-to-value ratio.",
+      });
+    }
+  });

@@ -67,7 +67,7 @@ All five input fields are required and must be finite numbers greater than zero.
 }
 ```
 
-Malformed JSON also returns HTTP 400 with the `INVALID_JSON` error code.
+Malformed JSON returns HTTP 400 with the `INVALID_JSON` error code. JSON payloads larger than 10 KB return HTTP 413 with the `PAYLOAD_TOO_LARGE` error code. Unsupported request-body encodings return HTTP 415 without exposing parser details.
 
 ## Project structure
 

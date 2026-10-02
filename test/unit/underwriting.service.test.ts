@@ -43,6 +43,36 @@ describe("evaluateUnderwritingDecision", () => {
     ]);
   });
 
+  it("declines when debt-to-income is above 0.50", () => {
+    const result = evaluateUnderwritingDecision({
+      ...baseApplication,
+      monthlyDebt: 5_001,
+    });
+
+    assert.equal(result.decision, "DECLINE");
+    assert.deepEqual(result.reasons, [
+      {
+        code: "DEBT_TO_INCOME_DECLINE",
+        message: "Debt-to-income ratio is above the decline threshold of 0.50.",
+      },
+    ]);
+  });
+
+  it("declines when loan-to-value is above 0.90", () => {
+    const result = evaluateUnderwritingDecision({
+      ...baseApplication,
+      requestedLoan: 360_001,
+    });
+
+    assert.equal(result.decision, "DECLINE");
+    assert.deepEqual(result.reasons, [
+      {
+        code: "LOAN_TO_VALUE_DECLINE",
+        message: "Loan-to-value ratio is above the decline threshold of 0.90.",
+      },
+    ]);
+  });
+
   it("refers when a factor crosses only a referral threshold", () => {
     const result = evaluateUnderwritingDecision({
       ...baseApplication,

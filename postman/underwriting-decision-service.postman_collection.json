@@ -176,6 +176,128 @@
       ]
     },
     {
+      "name": "Transport errors",
+      "item": [
+        {
+          "name": "Error - payload too large",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = {",
+                  "  annualIncome: 120000,",
+                  "  monthlyDebt: 2500,",
+                  "  propertyValue: 400000,",
+                  "  requestedLoan: 280000,",
+                  "  creditScore: 720,",
+                  "  padding: \"x\".repeat(11000)",
+                  "};",
+                  "pm.request.body.update(JSON.stringify(payload));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 413\", function () {",
+                  "  pm.response.to.have.status(413);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Oversized JSON receives the safe error contract\", function () {",
+                  "  pm.expect(response).to.deep.eql({",
+                  "    error: \"PAYLOAD_TOO_LARGE\",",
+                  "    message: \"Request body must not exceed 10 KB.\"",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "A pre-request script creates a payload above the 10 KB request limit."
+          },
+          "response": []
+        },
+        {
+          "name": "Error - unsupported charset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 415\", function () {",
+                  "  pm.response.to.have.status(415);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test(\"Unsupported encodings receive the safe error contract\", function () {",
+                  "  pm.expect(response).to.deep.eql({",
+                  "    error: \"UNSUPPORTED_BODY_ENCODING\",",
+                  "    message: \"Request body uses an unsupported encoding.\"",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json; charset=iso-8859-1",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annualIncome\": 120000,\n  \"monthlyDebt\": 2500,\n  \"propertyValue\": 400000,\n  \"requestedLoan\": 280000,\n  \"creditScore\": 720\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/underwriting/decision",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "underwriting", "decision"]
+            },
+            "description": "Unsupported JSON character encodings return HTTP 415 without parser details."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Boundary behavior",
       "item": [
         {

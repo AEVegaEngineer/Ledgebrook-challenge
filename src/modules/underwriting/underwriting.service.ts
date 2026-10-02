@@ -13,6 +13,10 @@ const LOAN_TO_VALUE_DECLINE_THRESHOLD = 0.9;
 const LOAN_TO_VALUE_REFER_THRESHOLD = 0.8;
 const APPROVAL_LOAN_TO_VALUE_LIMIT = 0.8;
 
+function formatRatioThreshold(value: number): string {
+  return value.toFixed(2);
+}
+
 interface FactorEvaluation {
   reason?: UnderwritingReason;
   declines: boolean;
@@ -30,7 +34,7 @@ function evaluateCreditScore(creditScore: number): FactorEvaluation {
     return {
       reason: {
         code: "CREDIT_SCORE_DECLINE",
-        message: "Credit score is below the decline threshold of 600.",
+        message: `Credit score is below the decline threshold of ${CREDIT_SCORE_DECLINE_THRESHOLD}.`,
       },
       declines: true,
     };
@@ -40,7 +44,7 @@ function evaluateCreditScore(creditScore: number): FactorEvaluation {
     return {
       reason: {
         code: "CREDIT_SCORE_REFER",
-        message: "Credit score is below the referral threshold of 680.",
+        message: `Credit score is below the referral threshold of ${CREDIT_SCORE_REFER_THRESHOLD}.`,
       },
       declines: false,
     };
@@ -54,7 +58,7 @@ function evaluateDebtToIncome(debtToIncome: number): FactorEvaluation {
     return {
       reason: {
         code: "DEBT_TO_INCOME_DECLINE",
-        message: "Debt-to-income ratio is above the decline threshold of 0.50.",
+        message: `Debt-to-income ratio is above the decline threshold of ${formatRatioThreshold(DEBT_TO_INCOME_DECLINE_THRESHOLD)}.`,
       },
       declines: true,
     };
@@ -64,7 +68,7 @@ function evaluateDebtToIncome(debtToIncome: number): FactorEvaluation {
     return {
       reason: {
         code: "DEBT_TO_INCOME_REFER",
-        message: "Debt-to-income ratio is above the referral threshold of 0.40.",
+        message: `Debt-to-income ratio is above the referral threshold of ${formatRatioThreshold(DEBT_TO_INCOME_REFER_THRESHOLD)}.`,
       },
       declines: false,
     };
@@ -78,7 +82,7 @@ function evaluateLoanToValue(loanToValue: number): FactorEvaluation {
     return {
       reason: {
         code: "LOAN_TO_VALUE_DECLINE",
-        message: "Loan-to-value ratio is above the decline threshold of 0.90.",
+        message: `Loan-to-value ratio is above the decline threshold of ${formatRatioThreshold(LOAN_TO_VALUE_DECLINE_THRESHOLD)}.`,
       },
       declines: true,
     };
@@ -88,7 +92,7 @@ function evaluateLoanToValue(loanToValue: number): FactorEvaluation {
     return {
       reason: {
         code: "LOAN_TO_VALUE_REFER",
-        message: "Loan-to-value ratio is above the referral threshold of 0.80.",
+        message: `Loan-to-value ratio is above the referral threshold of ${formatRatioThreshold(LOAN_TO_VALUE_REFER_THRESHOLD)}.`,
       },
       declines: false,
     };
