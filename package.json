@@ -1,20 +1,31 @@
 {
-  "name": "ledgebrook-interview-practice",
-  "version": "0.1.0",
+  "name": "underwriting-decision-service",
+  "version": "1.0.0",
   "private": true,
-  "description": "End-to-end boilerplate for Ledgebrook technical interview practice",
-  "workspaces": [
-    "apps/api",
-    "apps/web"
-  ],
+  "description": "Deterministic underwriting decision REST service",
+  "type": "module",
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "check": "npm run typecheck --workspaces --if-present && npm run build --workspaces --if-present",
-    "dev:api": "npm run dev --workspace @ledgebrook/api",
-    "dev:web": "npm run dev --workspace @ledgebrook/web"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/unit/*.test.ts test/integration/*.test.ts",
+    "check": "npm run typecheck && npm test && npm run build"
   },
   "engines": {
     "node": ">=20",
     "npm": ">=10"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.4",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   }
 }

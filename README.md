@@ -1,85 +1,111 @@
-# Ledgebrook End-to-End Practice App
+# Underwriting Decision Service
 
-This is one standalone project for the Ledgebrook Senior Full-Stack Engineer assessment. It follows the recruiter guide's recommended story:
+A small TypeScript and Express REST service that evaluates underwriting applications with deterministic business rules. It runs entirely in memory and keeps HTTP handling, runtime validation, and decision logic in separate modules.
 
-`React frontend → Node.js/TypeScript REST API → Python worker → PostgreSQL → CI/CD`
+## Requirements
 
-The repository currently contains boilerplate only. There is no insurance workflow or interview-solution code yet.
+- Node.js 20 or newer (`.nvmrc` selects Node.js 22)
+- npm 10 or newer
 
-## Project layout
+## Run locally
 
-```text
-apps/
-  web/       React + TypeScript + Vite
-  api/       Node.js + TypeScript + Express
-  worker/    Installable Python worker package
-database/    Local PostgreSQL with Docker Compose
-docs/        Assessment scope and architecture notes
-infrastructure/ Delivery notes
-```
-
-Testing, third-party reliability, LLM safety, SQL, and system design remain practice domains, but they are applied to this one project rather than implemented as disconnected exercises.
-
-## Prerequisites
-
-- Node.js 20 or newer and npm 10 or newer
-- Python 3.9 or newer
-- Docker with Docker Compose
-
-## Install and verify Node.js applications
-
-From this directory:
+Install dependencies and start the watch-mode development server:
 
 ```bash
 npm install
-npm run check
+npm run dev
 ```
 
-Run the applications in separate terminals:
+The service listens on `http://localhost:3000` by default. Set `PORT` to use another valid port.
+
+## API
+
+### `POST /api/underwriting/decision`
+
+Example request:
 
 ```bash
-npm run dev:api
-npm run dev:web
+curl --request POST http://localhost:3000/api/underwriting/decision \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "annualIncome": 120000,
+    "monthlyDebt": 2500,
+    "propertyValue": 400000,
+    "requestedLoan": 280000,
+    "creditScore": 720
+  }'
 ```
 
-- API: <http://localhost:3000>
-- Web: <http://localhost:5173>
+Example response:
 
-## Install and verify the Python worker
+```json
+{
+  "decision": "APPROVE",
+  "approvedAmount": 280000,
+  "metrics": {
+    "debtToIncome": 0.25,
+    "loanToValue": 0.7
+  },
+  "reasons": []
+}
+```
 
-From this directory:
+Valid requests return `APPROVE`, `REFER`, or `DECLINE`. `approvedAmount` is present only for approved applications. Every non-ideal factor is represented as a stable reason code paired with a human-readable message.
+
+All five input fields are required and must be finite numbers greater than zero. Validation failures return HTTP 400:
+
+```json
+{
+  "error": "VALIDATION_ERROR",
+  "message": "Request validation failed.",
+  "issues": [
+    {
+      "field": "annualIncome",
+      "message": "Annual income must be greater than zero."
+    }
+  ]
+}
+```
+
+Malformed JSON also returns HTTP 400 with the `INVALID_JSON` error code.
+
+## Project structure
+
+```text
+src/
+├── app.ts
+├── server.ts
+├── middleware/
+│   └── error-handler.ts
+└── modules/
+    └── underwriting/
+        ├── underwriting.types.ts
+        ├── underwriting.schema.ts
+        ├── underwriting.service.ts
+        ├── underwriting.controller.ts
+        └── underwriting.routes.ts
+test/
+├── unit/
+│   └── underwriting.service.test.ts
+└── integration/
+    └── underwriting.endpoint.test.ts
+```
+
+The underwriting service is a pure function with no Express or validation dependencies. Zod validates unknown request data at the HTTP boundary, and the controller passes only parsed domain input to the service. There is no database, external provider, or LLM dependency.
+
+## Commands
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e './apps/worker[dev]'
-python -m pytest apps/worker
-python -m ledgebrook_worker
+npm run dev        # Start the development server in watch mode
+npm test           # Run unit and integration tests
+npm run typecheck  # Check TypeScript types
+npm run build      # Compile to dist/
+npm start          # Run the compiled service
+npm run check      # Typecheck, test, and build
 ```
 
-The module exits after printing a readiness message; it does not process jobs yet.
+## Frontend integration
 
-## Start PostgreSQL
+A React or Angular client would collect the five numeric fields in a form and submit them as JSON when the user requests a decision. While the request is pending, it should disable duplicate submissions and show a loading state. HTTP 400 validation issues can be mapped to their matching form controls, while malformed or unexpected errors should be shown as a general message with a retry action.
 
-```bash
-docker compose -f database/compose.yaml up -d
-docker compose -f database/compose.yaml ps
-```
-
-Copy `database/.env.example` to `database/.env` only when you need to override the local defaults. Stop the database with:
-
-```bash
-docker compose -f database/compose.yaml down
-```
-
-The named volume is intentionally retained between runs. Use `down --volumes` only when you deliberately want to erase local database data.
-
-## Practice sequence
-
-1. Keep the boilerplate green with `npm run check` and `python -m pytest apps/worker`.
-2. Implement one thin vertical slice across the existing components.
-3. Add mutable-domain schema and history only when the exercise reaches PostgreSQL.
-4. Add integration, provider-failure, deployment, and LLM exercises to the same application.
-
-The detailed challenge map is in `docs/assessment-scope.md`. The initial design boundary is in `docs/system-design.md`.
+On success, the client should render the decision as a prominent status, format DTI and LTV as percentages, show `approvedAmount` only for approvals, and list each human-readable reason for referred or declined applications. The stable reason codes can later support analytics, workflow routing, or an optional LLM explanation layer without giving an LLM authority over the decision.
