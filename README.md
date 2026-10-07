@@ -1,6 +1,23 @@
 # Underwriting Decision Service
 
+[![Checks](https://github.com/AEVegaEngineer/underwriting-decision-service/actions/workflows/check.yml/badge.svg)](https://github.com/AEVegaEngineer/underwriting-decision-service/actions/workflows/check.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A small TypeScript and Express REST service that evaluates underwriting applications with deterministic business rules. It runs entirely in memory and keeps HTTP handling, runtime validation, and decision logic in separate modules.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[HTTP client] --> B[Express route]
+    B --> C[Zod boundary validation]
+    C --> D[Underwriting controller]
+    D --> E[Pure decision service]
+    E --> F[Typed decision response]
+    B -. errors .-> G[Central error handler]
+```
+
+The service intentionally keeps a consequential approval decision deterministic. An LLM could later explain a decision or support an analyst, but it would not control the decision itself.
 
 ## Requirements
 
@@ -93,6 +110,14 @@ test/
 
 The underwriting service is a pure function with no Express or validation dependencies. Zod validates unknown request data at the HTTP boundary, and the controller passes only parsed domain input to the service. There is no database, external provider, or LLM dependency.
 
+## Engineering decisions
+
+- **Deterministic domain core:** the approval rules are explicit, reproducible, and independently testable.
+- **Runtime validation at the boundary:** Zod converts unknown JSON into trusted domain input before business logic runs.
+- **Stable reason codes:** machines can route and analyze decisions without parsing human-readable text.
+- **Safe error mapping:** malformed, oversized, compressed, and unsupported requests do not leak parser or server details.
+- **No speculative infrastructure:** in-memory execution matches the scope while preserving clear boundaries for future persistence or provider integrations.
+
 ## Commands
 
 ```bash
@@ -103,6 +128,8 @@ npm run build      # Compile to dist/
 npm start          # Run the compiled service
 npm run check      # Typecheck, test, and build
 ```
+
+The test suite covers domain thresholds, boundary values, invalid inputs, malformed requests, payload limits, unsupported encodings, routing, and unexpected-error handling.
 
 ## Test with Postman
 
@@ -115,3 +142,13 @@ The collection uses a `baseUrl` variable set to `http://localhost:3000`. Update 
 A React or Angular client would collect the five numeric fields in a form and submit them as JSON when the user requests a decision. While the request is pending, it should disable duplicate submissions and show a loading state. HTTP 400 validation issues can be mapped to their matching form controls, while malformed or unexpected errors should be shown as a general message with a retry action.
 
 On success, the client should render the decision as a prominent status, format DTI and LTV as percentages, show `approvedAmount` only for approvals, and list each human-readable reason for referred or declined applications. The stable reason codes can later support analytics, workflow routing, or an optional LLM explanation layer without giving an LLM authority over the decision.
+
+## Limitations
+
+- State is not persisted and no audit trail is stored.
+- Authentication, authorization, rate limiting, and production telemetry are outside the current scope.
+- The rules are illustrative and are not intended for real lending decisions.
+
+## License
+
+MIT

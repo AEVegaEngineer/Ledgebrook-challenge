@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Deterministic underwriting decision REST service",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
